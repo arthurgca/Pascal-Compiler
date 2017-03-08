@@ -10,7 +10,7 @@ program:
 	heading=program_heading_block block=block "." 
 ;
 
-program_heading_block: //TODO: esse parametro foi adicionado como opcional
+program_heading_block:
 	"program" name=ID ( "(" identifiers=identifier_list ")" ) ? ";"	
 ;
  
@@ -18,7 +18,7 @@ identifier_list:
 	names+=ID ( "," names+=ID ) *	
 ;
 
-block: //TODO: INLINE DECLARATION PART
+block: 
 	( label=label_declaration_part ) ?
 	( constant=constant_definition_part ) ? 
 	( type=type_definition_part ) ?
@@ -43,7 +43,7 @@ label:
 	number=SIGNED_INTEGER_NUMBER | number=INTEGER_NUMBER
 ;
 
-simple_statement: //TODO: FOI ADICIONADO O PARAMETRO ID (FUNCTION DESIGNATOR SEM PARAMETRO)
+simple_statement:
 	( assignment=assignment_statement | function=function_designator | goto=goto_statement | function_noargs=ID ) ?	
 ;
  
@@ -51,11 +51,11 @@ assignment_statement:
 	variable=variable ":=" expression=expression	
 ;
  
-variable: //FALTOU REFERENCED_VARIABLE, MAS ACHO QUE FUNCIONA
+variable: 
 	name=ID variable=var_
 ;
     
-var_: //TODO: REMOVIDO RECURSÃO A ESQUERDA (ERA COMPONENT_VARIABLE)
+var_: 
 	( "[" expressions=expression_list "]" array=var_ | accessor?="." name=ID variable=var_ | "^" pointer=var_ ) ?
 ; 
 
@@ -63,7 +63,7 @@ expression_list:
 	expressions+=expression ( "," expressions+=expression ) * 	
 ;
 
-expression: //TODO: ADICIONADO "=" PQ N TAVA RECONHECENDO EM RELATIONAL_OPERATOR
+expression: 
 	expressions+=simple_expression ( ( operators+=RELATIONAL_OPERATOR | operators+="in" | operators+="=" ) expressions+=simple_expression ) ?
 ; 
 
@@ -179,7 +179,7 @@ type_definition:
 	name=ID "=" type=type	
 ;
 
-type: //TODO: REMOVIDO ID
+type: 
 	simple=simple_type | structured=structured_type | pointer=pointer_type 
 ;
 
@@ -187,7 +187,7 @@ simple_type: //TODO: ADICIONADO ID
 	subrange=subrange_type | enumerated=enumerated_type | name=ID
 ;
 
-subrange_type hidden(WS): //TODO: ADICIONADO HIDDEN(WS) PARA REMOVER ESPAÇO EM BRANCO
+subrange_type hidden(WS): 
 	 initialConst=constant ".." finalConst=constant | subrange=NUMERIC_SUBRANGE const=constant
 ;
 
@@ -199,7 +199,7 @@ structured_type:
 	( packed?="packed" ) ? type=unpacked_structured_type	
 ;
 
-unpacked_structured_type: //TODO: ADICIONADO DYNAMIC_ARRAY_TYPE
+unpacked_structured_type: 
 	array=array_type | dynamic=dynamic_array_type | record=record_type | set=set_type | file=file_type
 ;
 
@@ -259,7 +259,7 @@ file_type:
 	"file" "of" type=type
 ;
 
-pointer_type: //TODO: MUDADO ID PARA TYPE
+pointer_type: 
 	"^" type=type 
 ; 
 
