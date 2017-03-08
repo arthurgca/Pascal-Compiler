@@ -183,7 +183,7 @@ type:
 	simple=simple_type | structured=structured_type | pointer=pointer_type 
 ;
 
-simple_type: //TODO: ADICIONADO ID
+simple_type:
 	subrange=subrange_type | enumerated=enumerated_type | name=ID
 ;
 
