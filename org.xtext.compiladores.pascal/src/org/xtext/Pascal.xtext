@@ -1,0 +1,379 @@
+grammar org.xtext.Pascal with org.eclipse.xtext.common.Terminals
+
+generate pascal "http://www.xtext.org/Pascal"
+
+pascal:
+	program += program
+; 
+
+program:
+	heading=program_heading_block block=block "." 
+;
+
+program_heading_block: //TODO: esse parametro foi adicionado como opcional
+	"program" name=ID ( "(" identifiers=identifier_list ")" ) ? ";"	
+;
+ 
+identifier_list:
+	names+=ID ( "," names+=ID ) *	
+;
+
+block: //TODO: INLINE DECLARATION PART
+	( label=label_declaration_part ) ?
+	( constant=constant_definition_part ) ? 
+	( type=type_definition_part ) ?
+	( variable=variable_declaration_part ) ? 
+	( abstraction=procedure_and_function_declaration_part ) ? 
+	statement=statement_part
+;
+
+statement_part:
+	"begin" sequence=statement_sequence "end"	
+;
+
+statement_sequence:
+	statements+=statement ( ";" statements+=statement ) *
+;
+ 
+statement:  
+	( label=label ":" ) ? ( simple=simple_statement | structured=structured_statement )
+;
+
+label:
+	number=SIGNED_INTEGER_NUMBER | number=INTEGER_NUMBER
+;
+
+simple_statement: //TODO: FOI ADICIONADO O PARAMETRO ID (FUNCTION DESIGNATOR SEM PARAMETRO)
+	( assignment=assignment_statement | function=function_designator | goto=goto_statement | function_noargs=ID ) ?	
+;
+ 
+assignment_statement: 
+	variable=variable ":=" expression=expression	
+;
+ 
+variable: //FALTOU REFERENCED_VARIABLE, MAS ACHO QUE FUNCIONA
+	name=ID variable=var_
+;
+    
+var_: //TODO: REMOVIDO RECURSÃO A ESQUERDA (ERA COMPONENT_VARIABLE)
+	( "[" expressions=expression_list "]" array=var_ | accessor?="." name=ID variable=var_ | "^" pointer=var_ ) ?
+; 
+
+expression_list:
+	expressions+=expression ( "," expressions+=expression ) * 	
+;
+
+expression: //TODO: ADICIONADO "=" PQ N TAVA RECONHECENDO EM RELATIONAL_OPERATOR
+	expressions+=simple_expression ( ( operators+=RELATIONAL_OPERATOR | operators+="in" | operators+="=" ) expressions+=simple_expression ) ?
+; 
+
+simple_expression hidden(WS): 
+	( prefixOperator=ADDITION_OPERATOR ) ? terms+=term ( ( operators+=ADDITION_OPERATOR | operators+="or" ) terms+=term | terms+=unsigned_number ) *
+;
+  
+term:
+	factors+=factor ( ( operators+=MULTIPLICATION_OPERATOR | operators+="div" | operators+="mod" | operators+="and" ) factors+=factor ) * 
+;
+
+factor: 
+	variable=variable | number=number | string=STRING | set=set | nil?="nil" | boolean="true" | boolean="false" | function=function_designator | "(" expression=expression ")" | "not" not=factor	
+;
+
+number:
+	number=any_number	
+;
+
+any_number:
+	unsigned_number | signed_number	
+;
+
+unsigned_number returns any_number:
+	integer=INTEGER_NUMBER | real=REAL_NUMBER	
+;
+ 
+signed_number returns any_number:
+	integer=SIGNED_INTEGER_NUMBER | real=SIGNED_REAL_NUMBER
+;
+
+set:
+	brackets+="[" expressions=expression_list ? brackets+="]"	
+;
+
+function_designator:
+	name=ID "(" expressions=expression_list ? ")"
+;
+
+structured_statement: 
+	compound=compound_statement | repetitive=repetitive_statement | conditional=conditional_statement | withStmt=with_statement
+;
+
+compound_statement:
+	"begin" sequence=statement_sequence "end"
+;
+
+repetitive_statement: 
+	whileStmt=while_statement | repeatStmt=repeat_statement | forStmt=for_statement
+;
+
+while_statement:
+	"while" expression=expression "do" statement=statement	
+;
+
+repeat_statement:
+	"repeat" sequence=statement_sequence "until" expression=expression	
+;
+
+for_statement:
+	"for" assignment=assignment_statement ( "to" | "downto" ) expression=expression "do" statement=statement	
+;
+
+conditional_statement: 
+	ifStmt=if_statement | caseStmt=case_statement
+;
+
+if_statement:
+	"if" expression=expression "then" ifStatement=statement ( "else" elseStatement=statement )	?
+;
+
+case_statement:
+	"case" expression=expression "of" cases+=case_limb ( ";" cases+=case_limb ) * ( ";" ) ? "end"	
+;
+
+case_limb:
+	cases=case_label_list ":" statement=statement	
+;
+
+case_label_list:
+	constants+=constant ( "," constants+=constant ) *	
+;
+
+constant:
+	opterator=ADDITION_OPERATOR ? ( name=ID | number=number ) | string=STRING | boolLiteral="true" | boolLiteral="false" | nil="nil"
+;
+
+with_statement:
+	"with" variables+=variable ( "," variables+=variable ) * "do" statement=statement	
+;
+
+goto_statement:
+	"goto" label=label	
+;
+
+label_declaration_part:
+	"label" labels+=label ( "," labels+=label ) * ";"
+;
+
+constant_definition_part:
+	"const" ( consts+=constant_definition ";" ) +	
+;
+
+constant_definition:
+	name=ID "=" const=constant	
+;
+
+type_definition_part:
+	"type" ( types+=type_definition ";" ) +	
+;
+
+type_definition:
+	name=ID "=" type=type	
+;
+
+type: //TODO: REMOVIDO ID
+	simple=simple_type | structured=structured_type | pointer=pointer_type 
+;
+
+simple_type: //TODO: ADICIONADO ID
+	subrange=subrange_type | enumerated=enumerated_type | name=ID
+;
+
+subrange_type hidden(WS): //TODO: ADICIONADO HIDDEN(WS) PARA REMOVER ESPAÇO EM BRANCO
+	 initialConst=constant ".." finalConst=constant | subrange=NUMERIC_SUBRANGE const=constant
+;
+
+enumerated_type:
+	"(" identifiers=identifier_list ")"
+;
+
+structured_type:
+	( packed?="packed" ) ? type=unpacked_structured_type	
+;
+
+unpacked_structured_type: //TODO: ADICIONADO DYNAMIC_ARRAY_TYPE
+	array=array_type | dynamic=dynamic_array_type | record=record_type | set=set_type | file=file_type
+;
+
+array_type:
+	"array" "[" indexes+=index_type ( "," indexes+=index_type ) * "]" "of" type=type
+;
+
+dynamic_array_type:
+	"array" "of" type=type	
+;
+
+index_type:
+	type=simple_type	
+;
+
+record_type:
+	recordKeyword="record" fields=field_list? endKeyword="end"	
+; 
+
+field_list:
+	( fixed=fixed_part ( ";" variants+=variant_part ) ? | variants+=variant_part ) ( ";" ) ? 
+;
+
+fixed_part:
+	sections+=record_section ( ";" sections+=record_section ) *
+;
+
+variable_identifier_list:
+	names+=ID ( "," names+=ID ) *
+;
+
+variable_section:
+	identifiers=variable_identifier_list ":" type=type	
+;
+
+record_section:
+	identifiers=identifier_list ":" type=type	
+;
+
+variant_part:
+	"case" tag=tag_field? name=ID "of" variants+=variant ( ";" variants+=variant ) *  	
+;
+
+tag_field:
+	name=ID ":" 
+;
+
+variant:
+	labels=case_label_list ":" "(" fields=field_list? ")"	
+;
+
+set_type:
+	"set" "of" type=type	
+;
+
+file_type:
+	"file" "of" type=type
+;
+
+pointer_type: //TODO: MUDADO ID PARA TYPE
+	"^" type=type 
+; 
+
+variable_declaration_part:
+	"var" sections+=variable_section ";" ( sections+=variable_section ";" ) *
+;
+  
+procedure_and_function_declaration_part:
+	( ( procedures+=procedure_declaration | functions+=function_declaration  ) ";" ) +
+;
+
+abstraction_declaration:
+	procedure_declaration | function_declaration	
+;
+
+abstraction_heading:
+	procedure_heading | function_heading 
+;
+
+procedure_declaration returns abstraction_heading:
+	heading=procedure_heading ";" ( block=block | forward?="forward" )
+;
+
+procedure_heading returns abstraction_heading: 
+	"procedure" name=ID ( parameters=formal_parameter_list ) ?	
+;
+
+formal_parameter_list:
+	"(" parameters+=formal_parameter_section ( ";" parameters+=formal_parameter_section ) * ")"	
+;
+
+formal_parameter_section:  
+	value=value_parameter_section | variable=variable_parameter_section | procedure=procedure_heading | function=function_heading
+;
+
+value_parameter_section:
+	identifiers=identifier_list ":" type=parameter_type	
+;
+
+parameter_type:
+	array=conformant_array_schema | name=ID	
+;
+
+conformant_array_schema:
+	packed=packed_conformant_array_schema | unpacked=unpacked_conformant_array_schema	
+;
+
+packed_conformant_array_schema:
+	"packed" "array" "[" bound=bound_specification "]" "of" name=ID	
+;
+
+bound_specification:
+	initial=ID ".." final=ID ":" name=ID	
+;
+
+unpacked_conformant_array_schema:
+	"array" "[" bounds+=bound_specification ( ";" bounds+=bound_specification ) * "]" "of" type=parameter_type	
+;
+
+variable_parameter_section:
+	"var" identifiers=identifier_list ":" type=parameter_type	
+;
+
+function_heading returns abstraction_heading: 
+	"function" name=ID ( parameters=formal_parameter_list ) ? ":" returnType=ID
+;
+ 
+function_declaration returns abstraction_declaration:
+	heading=function_heading ";" ( block=block | forward?="forward") 
+;
+ 
+terminal NUMERIC_SUBRANGE:
+	( INTEGER_NUMBER | REAL_NUMBER | SIGNED_INTEGER_NUMBER | SIGNED_REAL_NUMBER ) ".."	
+;
+
+terminal ADDITION_OPERATOR:
+	"+" | "-" 	
+; 
+
+terminal MULTIPLICATION_OPERATOR:
+	"*" | "/" 
+;
+
+terminal RELATIONAL_OPERATOR:
+	"=" | "<>" | "<" | "<=" | ">" | ">=" 
+;
+
+terminal SIGNED_INTEGER_NUMBER:
+	ADDITION_OPERATOR INTEGER_NUMBER	
+;
+
+terminal INTEGER_NUMBER: 
+	UNSIGNED_DIGIT_SEQUENCE	
+;
+
+terminal SIGNED_REAL_NUMBER:
+	ADDITION_OPERATOR REAL_NUMBER
+;
+
+terminal REAL_NUMBER:
+	UNSIGNED_DIGIT_SEQUENCE "." ( UNSIGNED_DIGIT_SEQUENCE ) ? ( ( "E" | "e" ) DIGIT_SEQUENCE ) ? | 
+	UNSIGNED_DIGIT_SEQUENCE ( "E" | "e" ) DIGIT_SEQUENCE	
+;
+
+terminal UNSIGNED_DIGIT_SEQUENCE:
+	DIGIT+
+;
+
+terminal DIGIT_SEQUENCE:
+	ADDITION_OPERATOR ? UNSIGNED_DIGIT_SEQUENCE	
+;
+
+terminal DIGIT:
+	"0".."9"
+;
+
+terminal ML_COMMENT : '(*' -> '*)' | '{' -> '}';
