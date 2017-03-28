@@ -16,8 +16,9 @@ public class APIProvider {
 	private final static String CHAR = "char";
 	private final static String REFLECT = "reflect";
 	private final static String ENUMERATED = "...enumerated";
+	private final static String STRING = "String";
 
-	private final static String ARRAY_OF_CHAR = "array of char";
+
 	private final static String ARRAY_OF_INTEGER = "array of integer";
 	
 	
@@ -112,27 +113,27 @@ public class APIProvider {
 		addAbstraction(it, "pred", INTEGER, INTEGER);
 		addAbstraction(it, "new", VOID, POINTER_NEW_TYPE);
 		addAbstraction(it, "dispose", VOID, POINTER_NEW_TYPE);
-		addAbstraction(it, "strconcat", VOID, ARRAY_OF_CHAR, ARRAY_OF_CHAR);
-		addAbstraction(it, "strdelete", VOID, ARRAY_OF_CHAR, INTEGER, INTEGER);
-		addAbstraction(it, "strinsert", VOID, ARRAY_OF_CHAR, ARRAY_OF_CHAR, INTEGER);
-		addAbstraction(it, "strlen", INTEGER, ARRAY_OF_CHAR);
-		addAbstraction(it, "strscan", INTEGER, ARRAY_OF_CHAR, ARRAY_OF_CHAR);
-		addAbstraction(it, "strlen", INTEGER, ARRAY_OF_CHAR);
-		addAbstraction(it, "substr", VOID, ARRAY_OF_CHAR, INTEGER, INTEGER, ARRAY_OF_CHAR);
+		addAbstraction(it, "strconcat", VOID, STRING, STRING);
+		addAbstraction(it, "strdelete", VOID, STRING, INTEGER, INTEGER);
+		addAbstraction(it, "strinsert", VOID, STRING, STRING, INTEGER);
+		addAbstraction(it, "strlen", INTEGER, STRING);
+		addAbstraction(it, "strscan", INTEGER, STRING, STRING);
+		addAbstraction(it, "strlen", INTEGER, STRING);
+		addAbstraction(it, "substr", VOID, STRING, INTEGER, INTEGER, STRING);
 		addAbstraction(it, "address", INTEGER, POINTER_NEW_TYPE);	
 		addAbstraction(it, "length", INTEGER, ARRAY_OF_NEW_TYPE);
 		addAbstraction(it, "setlength", VOID, ARRAY_OF_NEW_TYPE, INTEGER);
 		addAbstraction(it, "write", VOID, NEWTYPE);
-		addAbstraction(it, "write", VOID, ARRAY_OF_CHAR);
+		addAbstraction(it, "write", VOID, STRING);
 		addAbstraction(it, "write", VOID); 
 		addAbstraction(it, "writeln", VOID, NEWTYPE);
-		addAbstraction(it, "writeln", VOID, ARRAY_OF_CHAR);
+		addAbstraction(it, "writeln", VOID, STRING);
 		addAbstraction(it, "writeln", VOID);
 		addAbstraction(it, "read", VOID, NEWTYPE);
-		addAbstraction(it, "read", VOID, ARRAY_OF_CHAR);
+		addAbstraction(it, "read", VOID, STRING);
 		addAbstraction(it, "read", VOID);
 		addAbstraction(it, "readln", VOID, NEWTYPE);
-		addAbstraction(it, "readln", VOID, ARRAY_OF_CHAR);
+		addAbstraction(it, "readln", VOID, STRING);
 		addAbstraction(it, "readln", VOID);
 	}
 	
@@ -149,7 +150,7 @@ public class APIProvider {
 		standardTypes.add(new Type(SHORT_INT));
 		standardTypes.add(new Type(LONG_INT));
 		standardTypes.add(new Type(BOOLEAN));
-		standardTypes.add(new Type(CHAR)); 
+		standardTypes.add(new Type(STRING)); 
 		return standardTypes;
 	}
 	
