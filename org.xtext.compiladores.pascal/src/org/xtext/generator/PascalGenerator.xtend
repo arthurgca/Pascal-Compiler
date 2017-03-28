@@ -299,7 +299,8 @@ class PascalGenerator implements IGenerator2  {
 			_«procedure.extendedName»_«getName(b)»:
 				«e.compileSequence(procedure.declaration.block, procedure.declaration.block.statement.sequence)»
 				«IF procedure instanceof Function»
-				mov eax, [«procedure.extendedName»_«getName(procedure.declaration.block)»]
+				«««mov eax, [«procedure.extendedName»_«getName(procedure.declaration.block)»]
+				mov eax, «procedure.extendedName»
 				«ENDIF»
 				ret ;return
 				
@@ -312,20 +313,20 @@ class PascalGenerator implements IGenerator2  {
 		«var functionToSearch = new Procedure(name, arguments)»
 		«var functionFound = PascalValidator.searchWithTypeCoersion(e.getProcedures(b), functionToSearch)»
 		«FOR arg : functionFound.parameters»
-			mov edx, «arg.name»_«getName(functionFound.declaration.block)»
+			mov edx, «arg.name»
 			push edx
 		«ENDFOR»
 		«IF function.expressions != null && function.expressions.expressions != null»
 			«var exps = function.expressions.expressions»
 			«FOR i : 0..exps.size-1»
 				«e.computeExpression(b, exps.get(i))»
-				mov [«functionFound.parameters.get(i).name»_«getName(functionFound.declaration.block)»], eax
+				mov «functionFound.parameters.get(i).name», eax
 			«ENDFOR»
 		«ENDIF»
-		call _«functionFound.extendedName»_«getName(functionFound.containingBlock)»
+		call «functionFound.extendedName»
 		«FOR arg : functionFound.parameters»
 			pop edx
-			mov [«arg.name»_«getName(functionFound.declaration.block)»], edx
+			mov «arg.name», edx
 		«ENDFOR»
 	'''
 	
@@ -503,7 +504,7 @@ class PascalGenerator implements IGenerator2  {
 			«ELSEIF s.simple.function_noargs != null»
 					; Call «s.simple.function_noargs»
 					«var functionFound = PascalValidator.search(e.getProcedures(b), new Procedure(s.simple.function_noargs, new ArrayList<Variable>()))»
-					call _«functionFound.extendedName»_«getName(functionFound.containingBlock)»
+					call «functionFound.extendedName»
 			«ELSEIF s.simple.function != null»
 				; Call «s.simple.function.name»
 				«e.computeFunction(b, s.simple.function)»
