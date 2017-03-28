@@ -183,9 +183,9 @@ class PascalGenerator implements IGenerator2  {
 		
 		; Codigo
 		«e.compileAllProcedures(e.block)»
-		_main:
+		; Main:
 		«e.compileSequence(e.block, e.block.statement.sequence)» 
-		ret	; Exit program	
+		ret	; Fim do programa	
 	'''
 	def CharSequence compileAllProcedures(program e, block b) '''
 		«e.compileProcedures(b, e.getProcedures(b))»
@@ -299,8 +299,8 @@ class PascalGenerator implements IGenerator2  {
 			_«procedure.extendedName»_«getName(b)»:
 				«e.compileSequence(procedure.declaration.block, procedure.declaration.block.statement.sequence)»
 				«IF procedure instanceof Function»
-				«««mov eax, [«procedure.extendedName»_«getName(procedure.declaration.block)»]
-				mov eax, «procedure.extendedName»
+				«««st eax, [«procedure.extendedName»_«getName(procedure.declaration.block)»]
+				st eax, «procedure.extendedName»
 				«ENDIF»
 				ret ;return
 				
@@ -313,20 +313,20 @@ class PascalGenerator implements IGenerator2  {
 		«var functionToSearch = new Procedure(name, arguments)»
 		«var functionFound = PascalValidator.searchWithTypeCoersion(e.getProcedures(b), functionToSearch)»
 		«FOR arg : functionFound.parameters»
-			mov edx, «arg.name»
+			st edx, «arg.name»
 			push edx
 		«ENDFOR»
 		«IF function.expressions != null && function.expressions.expressions != null»
 			«var exps = function.expressions.expressions»
 			«FOR i : 0..exps.size-1»
 				«e.computeExpression(b, exps.get(i))»
-				mov «functionFound.parameters.get(i).name», eax
+				st «functionFound.parameters.get(i).name», eax
 			«ENDFOR»
 		«ENDIF»
 		call «functionFound.extendedName»
 		«FOR arg : functionFound.parameters»
 			pop edx
-			mov «arg.name», edx
+			st «arg.name», edx
 		«ENDFOR»
 	'''
 	
@@ -335,35 +335,35 @@ class PascalGenerator implements IGenerator2  {
 		; computeFactor
 		«IF f.string != null»
 			lea eax, [«stringTable.get(f.string)»]
-			mov ebx, «stringTable.get(f.string)»_SIZE
+			st ebx, «stringTable.get(f.string)»_SIZE
 		«ELSEIF f.number != null»
 			«IF f.number.number.integer != null»
-				mov r1, «f.number.number.integer»
+				st r1, «f.number.number.integer»
 			«ELSE»
 			«ENDIF»
 		«ELSEIF f.boolean != null»
 			«IF f.boolean.toLowerCase.equals("true")»
-				mov r1, 1
+				st r1, 1
 			«ELSE»
-				mov r1, 0
+				st r1, 0
 			«ENDIF»
 		«ELSEIF f.variable != null»
 			«var variableFound = PascalValidator.search(e.getVariables(b), new Variable(f.variable.name))»
 			«IF variableFound.type == ElementType.CONSTANT»
 				«IF variableFound.varType.realType.toLowerCase.equals("array of char")»
 					lea eax, [«stringTable.get(variableFound.value as String)»]
-					mov ebx, «stringTable.get(variableFound.value as String)»_SIZE
+					st ebx, «stringTable.get(variableFound.value as String)»_SIZE
 				«ELSE»
-					«««mov eax, «getName(variableFound.containingBlock)»_«variableFound.name»
-					mov eax, «variableFound.name»
+					«««st eax, «getName(variableFound.containingBlock)»_«variableFound.name»
+					st eax, «variableFound.name»
 				«ENDIF»
 			«ELSE»
 				«IF variableFound.type == ElementType.FUNCTION_RETURN»
-					«««mov eax, [«variableFound.extendedName»_«getName(variableFound.containingBlock)»]
-					mov eax, «variableFound.name»
+					«««st eax, [«variableFound.extendedName»_«getName(variableFound.containingBlock)»]
+					st eax, «variableFound.name»
 				«ELSE»
-					«««mov eax, [«variableFound.name»_«getName(variableFound.containingBlock)»]
-					mov eax, «variableFound.name»
+					«««st eax, [«variableFound.name»_«getName(variableFound.containingBlock)»]
+					st eax, «variableFound.name»
 				«ENDIF»
 			«ENDIF»
 		«ELSEIF f.function != null»
@@ -382,30 +382,30 @@ class PascalGenerator implements IGenerator2  {
 		«IF t.operators != null»
 			«var int index = 1»
 			«FOR operator : t.operators»
-				mov ecx, eax
+				st ecx, eax
 				«e.computeFactor(b, t.factors.get(index++))»
 				; computeTerm2
 				«IF operator.toLowerCase.equals("and")»
 					and ecx, eax ; Logical And
 				«ELSEIF operator.toLowerCase.equals("mod")»
-					mov edx, eax ; Module
-					mov eax, ecx
-					mov ecx, edx
+					st edx, eax ; Module
+					st eax, ecx
+					st ecx, edx
 					cdq
 					idiv ecx
-					mov ecx, edx
+					st ecx, edx
 				«ELSEIF operator.toLowerCase.equals("div") || operator.equals("/")»
-					mov edx, eax ; Divide
-					mov eax, ecx
-					mov ecx, edx
+					st edx, eax ; Divide
+					st eax, ecx
+					st ecx, edx
 					cdq
 					idiv ecx
-					mov ecx, eax
+					st ecx, eax
 				«ELSEIF operator.equals("*")»
 					mul ecx ; Multiply
-					mov ecx, eax
+					st ecx, eax
 				«ENDIF»
-				mov eax, ecx
+				st eax, ecx
 			«ENDFOR»
 		«ENDIF»
 		«««pop ecx
@@ -423,11 +423,11 @@ class PascalGenerator implements IGenerator2  {
 		«IF exp.operators != null»
 			«var int index = 1»
 			«FOR operator : exp.operators»
-				mov ecx, eax
+				st ecx, eax
 				«IF exp.terms.get(index) instanceof term»
 					«e.computeTerm(b, exp.terms.get(index++) as term)»
 				«ELSE»
-					mov eax, «(exp.terms.get(index++) as any_number).integer»
+					st eax, «(exp.terms.get(index++) as any_number).integer»
 				«ENDIF»
 				«IF operator.equals("or")»
 					or ecx, eax ; Logical or
@@ -436,7 +436,7 @@ class PascalGenerator implements IGenerator2  {
 				«ELSEIF operator.equals("-")»
 					sub ecx, eax ; Sub
 				«ENDIF»
-				mov eax, ecx
+				st eax, ecx
 			«ENDFOR»
 		«ENDIF»
 		«««pop ecx
@@ -449,7 +449,7 @@ class PascalGenerator implements IGenerator2  {
 		«IF exp.operators != null»
 			«var int index = 1»
 			«FOR operator : exp.operators»
-				mov ecx, eax
+				st ecx, eax
 				«e.computeSimpleExpression(b, exp.expressions.get(index++))»
 				cmp ecx, eax
 				«IF operator.equals("=")»
@@ -472,12 +472,12 @@ class PascalGenerator implements IGenerator2  {
 					jmp .set_to_false«labelCount»
 				«ENDIF»
 				.set_to_true«labelCount»:
-					mov ecx, 1
+					st ecx, 1
 					jmp .out«labelCount»
 				.set_to_false«labelCount»:
-					mov ecx, 0
+					st ecx, 0
 				.out«labelCount++»:
-					mov eax, ecx
+					st eax, ecx
 			«ENDFOR»
 		«ENDIF»
 		«««pop ecx
