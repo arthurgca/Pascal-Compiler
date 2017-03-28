@@ -47,6 +47,9 @@ class PascalGenerator implements IGenerator2  {
 	private int conditionalLabelCount;
 	private int caseLabelCount;
 	private int caseGlobalLabelCount;
+	private String reg1;
+	private String reg2;
+	private String reg3;
 	
 	override doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 		for (e: resource.allContents.toIterable.filter(program)) {
@@ -57,6 +60,18 @@ class PascalGenerator implements IGenerator2  {
 			stringTable.clear();
 			fsa.generateFile(e.heading.name + ".asm", e.compile);
 		}
+	}
+	
+	def setReg1(String address){
+		this.reg1 = address;
+	}
+	
+	def setReg2(String address){
+		this.reg2 = address;
+	}
+	
+	def setReg3(String address){
+		this.reg3 = address;
 	}
 
 	def createStringTable(program e) {
@@ -100,11 +115,7 @@ class PascalGenerator implements IGenerator2  {
 	def getProcedures(program e, block b) {
 		return getProcedures(e).get(b);	
 	}
-	
-	//TODO: SECTION
-	//--------------------------------------------------
-	// VALUE INFERER SECTION
-	//--------------------------------------------------
+
 	def getValue(Variable v) {
 		if (v.value instanceof String) {
 			return "'" + v.value.toString.replaceAll("'", "\"") + "'";
@@ -151,21 +162,26 @@ class PascalGenerator implements IGenerator2  {
 		return map.get(expr); 
 	}
 	
+	/*TODO codigo comentado
+	 * «««global _main
+		
+		«««; Carregando constantes
+		«««section .data
+		«««	«e.createStringTable»
+		«««	«e.compileStrings»
+		«««	«e.compileAllConstants(e.block)»
+			
+		«««; Carregando variaveis
+		«««section .bss
+		«««	«e.compileAllVariables(e.block)»
+		* 
+		* ; Codigo
+		«««section .text
+	 */
 	def compile(program e) '''
-		; Program «e.heading.name»
-		global _main
+		; Programa «e.heading.name»		
 		
-		; Loading constants and strings
-		section .data
-			«e.createStringTable»
-			«e.compileStrings»
-			«e.compileAllConstants(e.block)»
-		; Loading variables
-		section .bss
-			«e.compileAllVariables(e.block)»
-		
-		; Code
-		section .text
+		; Codigo
 		«e.compileAllProcedures(e.block)»
 		_main:
 		«e.compileSequence(e.block, e.block.statement.sequence)» 
@@ -313,20 +329,22 @@ class PascalGenerator implements IGenerator2  {
 		«ENDFOR»
 	'''
 	
+	//TODO usando um registrador temporario
 	def CharSequence computeFactor(program e, block b, factor f) '''
+		; computeFactor
 		«IF f.string != null»
 			lea eax, [«stringTable.get(f.string)»]
 			mov ebx, «stringTable.get(f.string)»_SIZE
 		«ELSEIF f.number != null»
 			«IF f.number.number.integer != null»
-				mov eax, «f.number.number.integer»
+				mov r1, «f.number.number.integer»
 			«ELSE»
 			«ENDIF»
 		«ELSEIF f.boolean != null»
 			«IF f.boolean.toLowerCase.equals("true")»
-				mov eax, 1
+				mov r1, 1
 			«ELSE»
-				mov eax, 0
+				mov r1, 0
 			«ENDIF»
 		«ELSEIF f.variable != null»
 			«var variableFound = PascalValidator.search(e.getVariables(b), new Variable(f.variable.name))»
@@ -353,17 +371,18 @@ class PascalGenerator implements IGenerator2  {
 			xor eax, 1 ; Logical not
 		«ENDIF»
 	'''
-	
+	//TODO push ecx removido
 	def computeTerm(program e, block b, term t) '''
-		push ecx
 		«e.computeFactor(b, t.factors.get(0))»
+		; computeTerm1
 		«IF t.operators != null»
 			«var int index = 1»
 			«FOR operator : t.operators»
 				mov ecx, eax
 				«e.computeFactor(b, t.factors.get(index++))»
+				; computeTerm2
 				«IF operator.toLowerCase.equals("and")»
-					and ecx, eax ; And
+					and ecx, eax ; Logical And
 				«ELSEIF operator.toLowerCase.equals("mod")»
 					mov edx, eax ; Module
 					mov eax, ecx
@@ -385,12 +404,13 @@ class PascalGenerator implements IGenerator2  {
 				mov eax, ecx
 			«ENDFOR»
 		«ENDIF»
-		pop ecx
+		«««pop ecx
 	'''
 	
+	//TODO push ecx removido
 	def computeSimpleExpression(program e, block b, simple_expression exp) '''
-		push ecx
-		«e.computeTerm(b, exp.terms.get(0) as term)»
+		«e.computeTerm(b, exp.terms.get(0) as term)»		
+		; computeSimpleExpression
 		«IF exp.prefixOperator != null»
 			«IF exp.prefixOperator.equals("-")»
 				neg aex
@@ -415,12 +435,13 @@ class PascalGenerator implements IGenerator2  {
 				mov eax, ecx
 			«ENDFOR»
 		«ENDIF»
-		pop ecx
+		«««pop ecx
 	'''
 	
+	//TODO push ecx removido
 	def computeExpression(program e, block b, expression exp) '''
-		push ecx
 		«e.computeSimpleExpression(b, exp.expressions.get(0))»
+		; computeExpression
 		«IF exp.operators != null»
 			«var int index = 1»
 			«FOR operator : exp.operators»
@@ -455,7 +476,7 @@ class PascalGenerator implements IGenerator2  {
 					mov eax, ecx
 			«ENDFOR»
 		«ENDIF»
-		pop ecx
+		«««pop ecx
 	'''
 	
 	def CharSequence compileSequence(program e, block b, statement_sequence sequence) '''
@@ -464,16 +485,27 @@ class PascalGenerator implements IGenerator2  {
 		«ENDFOR»
 	'''
 	
+	//TODO aqui ainda tem o registrado generico
 	def CharSequence compileStatement(program e, block b, statement s) '''
 		«IF s.simple != null»
 			«IF s.simple.assignment != null»
-				; Assigning «s.simple.assignment.variable.name»
-				«e.computeExpression(b, s.simple.assignment.expression)»
+				; Atribuindo «s.simple.assignment.variable.name»
 				«var variableFound = PascalValidator.search(e.getVariables(b), new Variable(s.simple.assignment.variable.name))»
+				«setReg1(variableFound.name)»
+				«setReg2('r1')»
+				«setReg3('r3')»
+				
+				«e.computeExpression(b, s.simple.assignment.expression)»
+				; Atribuindo
+				
+				; Atribuindo f
+				
 				«IF variableFound.type == ElementType.FUNCTION_RETURN»
-					mov [«variableFound.extendedName»_«getName(variableFound.containingBlock)»], eax
+					«««st [«variableFound.extendedName»_«getName(variableFound.containingBlock)»], r*
+					st «s.simple.assignment.variable.name», r1
 				«ELSE»
-					mov [«variableFound.name»_«getName(variableFound.containingBlock)»], eax
+					«««st [«variableFound.name»_«getName(variableFound.containingBlock)»], r*
+					st «s.simple.assignment.variable.name», r1
 				«ENDIF»
 			«ELSEIF s.simple.function_noargs != null»
 					; Call «s.simple.function_noargs»
