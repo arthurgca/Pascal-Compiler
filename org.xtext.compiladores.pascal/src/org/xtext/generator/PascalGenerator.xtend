@@ -59,15 +59,15 @@ class PascalGenerator implements IGenerator2  {
 		}
 	}
 	
-	def setReg1(String address){
+	def void setReg1(String address){
 		this.reg1 = address;
 	}
 	
-	def setReg2(String address){
+	def void setReg2(String address){
 		this.reg2 = address;
 	}
 	
-	def setReg3(String address){
+	def void setReg3(String address){
 		this.reg3 = address;
 	}
 	
