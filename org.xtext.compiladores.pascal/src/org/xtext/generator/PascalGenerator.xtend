@@ -274,14 +274,16 @@ class PascalGenerator implements IGenerator2  {
 			st ebx, «stringTable.get(f.string)»_SIZE
 		«ELSEIF f.number != null»
 			«IF f.number.number.integer != null»
-				st r1, «f.number.number.integer»
+				ld r1, «f.number.number.integer»
 			«ELSE»
 			«ENDIF»
 		«ELSEIF f.boolean != null»
 			«IF f.boolean.toLowerCase.equals("true")»
-				st r1, 1
+				«««st r1, 1
+				ld r1, 1
 			«ELSE»
-				st r1, 0
+				«««st r1, 0
+				ld r1, 0
 			«ENDIF»
 		«ELSEIF f.variable != null»
 			«var variableFound = PascalValidator.search(e.getVariables(b), new Variable(f.variable.name))»
@@ -304,7 +306,8 @@ class PascalGenerator implements IGenerator2  {
 					st eax, «variableFound.name»
 				«ELSE»
 					«««st eax, [«variableFound.name»_«getName(variableFound.containingBlock)»]
-					st r1, «variableFound.name»
+					«««st r1, «variableFound.name»
+					ld r1, «variableFound.name»
 				«ENDIF»
 			«ENDIF»
 		«ELSEIF f.function != null»
@@ -352,9 +355,11 @@ class PascalGenerator implements IGenerator2  {
 					st ecx, eax
 				«ENDIF»
 				«IF reg2 != null && reg3 != null»
-					st r1, «reg2»
+					«««st r1, «reg2»
+					ld r1, «reg2»
 				«ELSE»
-					st r1, ecx
+					«««st r1, ecx
+					ld r1, ecx
 				«ENDIF»				
 			«ENDFOR»
 		«ENDIF»
@@ -391,9 +396,11 @@ class PascalGenerator implements IGenerator2  {
 					sub ecx, eax ; Sub
 				«ENDIF»
 				«IF reg2 != null && reg3 != null»
-					st r1, «reg2»
+					«««st r1, «reg2»
+					ld r1, «reg2»
 				«ELSE»
-					st r1, ecx
+					«««st r1, ecx
+					ld r1, ecx
 				«ENDIF»
 			«ENDFOR»
 		«ENDIF»
