@@ -73,23 +73,6 @@ class PascalGenerator implements IGenerator2  {
 	def setReg3(String address){
 		this.reg3 = address;
 	}
-
-	def createStringTable(program e) {
-		for (s : e.eAllContents.toIterable.filter(factor)) {
-			if (s.string != null) {
-				if (!stringTable.containsKey(s.string)) {
-					stringTable.put(s.string, "__STRING_" + stringTable.size());
-				}
-			}
-		}
-		for (const : e.eAllContents.toIterable.filter(constant)) {
-			if (const.string != null) {
-				if (!stringTable.containsKey(const.string)) {
-					stringTable.put(const.string, "__STRING_" + stringTable.size());
-				}
-			}
-		}
-	}
 	
 	def getName(block b) {
 		var lastName = b.toString.replaceAll("org.xtext.pascal.impl.blockImpl@", "");
@@ -203,38 +186,6 @@ class PascalGenerator implements IGenerator2  {
 		«ENDIF»
 	'''
 	
-	def CharSequence compileAllVariables(program e, block b) '''
-		«e.compileVariables(b, e.getVariables(b))»
-		«IF b.abstraction != null»
-			«FOR p : b.abstraction.procedures»
-				«IF p.block != null»
-					«e.compileAllVariables(p.block)»
-				«ENDIF» 
-			«ENDFOR»
-			«FOR p : b.abstraction.functions»
-				«IF p.block != null»
-					«e.compileAllVariables(p.block)»
-				«ENDIF» 
-			«ENDFOR»
-		«ENDIF»
-	'''
-	
-	def CharSequence compileAllConstants(program e, block b) '''
-		«e.compileConstants(b, e.getVariables(b))»
-		«IF b.abstraction != null»
-			«FOR p : b.abstraction.procedures»
-				«IF p.block != null»
-					«e.compileAllConstants(p.block)»
-				«ENDIF» 
-			«ENDFOR»
-			«FOR p : b.abstraction.functions»
-				«IF p.block != null»
-					«e.compileAllConstants(p.block)»
-				«ENDIF» 
-			«ENDFOR»
-		«ENDIF»
-	'''
-	
 	def compileConstant(program e, block b, Variable v) '''
 		«IF v.type == ElementType.CONSTANT && !v.isInherited &&
 			!v.varType.realType.toLowerCase.equals("array of char")» 
@@ -259,22 +210,7 @@ class PascalGenerator implements IGenerator2  {
 			«ENDIF»
 		«ENDIF»
 	'''
-	
-	def compileStrings(program e) '''
-		__NEW_LINE db 10, 0
-		__NEW_LINE_SIZE equ $-__NEW_LINE
-		__PRINTF_S db '%s', 0
-		__PRINTF_I db '%d', 0
-		__PRINTF_F db '%f', 0
-		__BOOLEAN_TRUE db 'true', 0
-		__BOOLEAN_TRUE_SIZE equ $-__BOOLEAN_TRUE
-		__BOOLEAN_FALSE db 'false', 0
-		__BOOLEAN_FALSE_SIZE equ $-__BOOLEAN_FALSE
-		«FOR s : stringTable.keySet» 
-			«e.compileString(s, stringTable.get(s))»
-		«ENDFOR»
-	'''
-	
+		
 	def compileConstants(program e, block b, Set<Variable> variables) '''
 		«FOR variable : variables»
 			«e.compileConstant(b, variable)»
