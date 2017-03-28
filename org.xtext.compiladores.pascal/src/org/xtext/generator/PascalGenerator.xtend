@@ -76,10 +76,6 @@ class PascalGenerator implements IGenerator2  {
 		}
 	}
 	
-	//TODO SECTION
-	//--------------------------------------------------------------
-	// ACCESSOR FUNCTIONS
-	//--------------------------------------------------------------
 	def getName(block b) {
 		var lastName = b.toString.replaceAll("org.xtext.pascal.impl.blockImpl@", "");
 		return lastName;
@@ -139,10 +135,6 @@ class PascalGenerator implements IGenerator2  {
 		return value;
 	}
 
-	//TODO: SECTION
-	//--------------------------------------------------
-	// TYPE INFERER SECTION
-	//--------------------------------------------------
 	def List<Variable> getArgumentTypes(program e, block b, expression_list expList) {
 		var List<Variable> list = new ArrayList<Variable>();
 		if (expList == null || expList.expressions == null) return list;
@@ -159,37 +151,25 @@ class PascalGenerator implements IGenerator2  {
 		return map.get(expr); 
 	}
 	
-	
-	//TODO: SECTION
-	//--------------------------------------------------
-	// COMPILER SECTION
-	//--------------------------------------------------
 	def compile(program e) '''
 		; Program «e.heading.name»
 		global _main
-		
-		extern _printf
-		extern _scanf 
 		
 		; Loading constants and strings
 		section .data
 			«e.createStringTable»
 			«e.compileStrings»
 			«e.compileAllConstants(e.block)»
-			
 		; Loading variables
 		section .bss
 			«e.compileAllVariables(e.block)»
 		
 		; Code
 		section .text
-		«e.printString»
-		«e.printInteger»
-		«e.printBoolean»
 		«e.compileAllProcedures(e.block)»
 		_main:
 		«e.compileSequence(e.block, e.block.statement.sequence)» 
-		ret	; Exit program
+		ret	; Exit program	
 	'''
 	def CharSequence compileAllProcedures(program e, block b) '''
 		«e.compileProcedures(b, e.getProcedures(b))»
@@ -237,58 +217,6 @@ class PascalGenerator implements IGenerator2  {
 				«ENDIF» 
 			«ENDFOR»
 		«ENDIF»
-	'''
-	
-	def printString(program e) '''
-		; Print string
-		_print_string:
-			push eax
-			push ebx 
-			sub esp, ebx
-			mov [esp], dword eax
-			call _printf
-			add esp, ebx
-			pop eax 
-			pop ebx
-			ret ;return
-			
-	'''
-	
-	def printInteger(program e) '''
-		; Print integer
-		_print_integer:
-			push eax
-			sub esp, 4
-			mov [esp], eax
-			sub esp, 4
-			lea eax, [__PRINTF_I]
-			mov [esp], eax
-			call _printf
-			add esp, 4
-			add esp, 4
-			pop eax
-			ret ;return 
-			
-	'''
-	
-	def printBoolean(program e) '''
-		; Print boolean
-		_print_boolean:
-			jnz .print_boolean_true
-			push eax
-			push ebx 
-			«e.print("__BOOLEAN_FALSE")»
-			pop eax
-			pop ebx
-			ret ;return
-			.print_boolean_true:
-			push eax
-			push ebx 
-			«e.print("__BOOLEAN_TRUE")»
-			pop eax
-			pop ebx
-			ret ;return
-			
 	'''
 	
 	def compileConstant(program e, block b, Variable v) '''
@@ -530,28 +458,6 @@ class PascalGenerator implements IGenerator2  {
 		pop ecx
 	'''
 	
-	def print(program e, block b, function_designator function) '''
-		«IF function.expressions != null»
-			«e.computeExpression(b, function.expressions.expressions.get(0))»
-			«IF TypeInferer.getTypeWeight(e.getType(function.expressions.expressions.get(0))) == 4»
-				call _print_float
-			«ELSEIF TypeInferer.getTypeWeight(e.getType(function.expressions.expressions.get(0))) >= 0»
-				call _print_integer
-			«ELSEIF e.getType(function.expressions.expressions.get(0)).realType.toLowerCase.equals("boolean")»
-				and eax, 1 ; Setting zero flag
-				call _print_boolean
-			«ELSE»
-				call _print_string
-			«ENDIF»
-		«ENDIF»
-	'''
-	
-	def print(program e, String s) '''
-		lea eax, [«s»]
-		mov ebx, «s»_SIZE
-		call _print_string
-	'''
-	
 	def CharSequence compileSequence(program e, block b, statement_sequence sequence) '''
 		«FOR stmt : sequence.statements»
 			«e.compileStatement(b, stmt)»
@@ -570,26 +476,12 @@ class PascalGenerator implements IGenerator2  {
 					mov [«variableFound.name»_«getName(variableFound.containingBlock)»], eax
 				«ENDIF»
 			«ELSEIF s.simple.function_noargs != null»
-				«IF s.simple.function_noargs.equals("writeln")»
-					; Call writeln
-					«e.print("__NEW_LINE")»
-				«ELSE»
 					; Call «s.simple.function_noargs»
 					«var functionFound = PascalValidator.search(e.getProcedures(b), new Procedure(s.simple.function_noargs, new ArrayList<Variable>()))»
 					call _«functionFound.extendedName»_«getName(functionFound.containingBlock)»
-				«ENDIF»
 			«ELSEIF s.simple.function != null»
-				«IF s.simple.function.name.equals("write")»
-					; Call write
-					«e.print(b, s.simple.function)»
-				«ELSEIF s.simple.function.name.equals("writeln")»
-					; Call writeln
-					«e.print(b, s.simple.function)»
-					«e.print("__NEW_LINE")»
-				«ELSE»
-					; Call «s.simple.function.name»
-					«e.computeFunction(b, s.simple.function)»
-				«ENDIF»
+				; Call «s.simple.function.name»
+				«e.computeFunction(b, s.simple.function)»
 			«ENDIF»
 		«ELSEIF s.structured != null»
 			«IF s.structured.compound != null»
@@ -613,27 +505,6 @@ class PascalGenerator implements IGenerator2  {
 							«e.compileStatement(b, ifStmt.elseStatement)»
 						«ENDIF»
 					.conditional_out«label»:
-				«ELSEIF s.structured.conditional.caseStmt != null»
-					; Case statement
-					«var caseStmt = s.structured.conditional.caseStmt»
-					«var int globalLabel = caseGlobalLabelCount++»
-					«e.computeExpression(b, caseStmt.expression)»
-					«FOR c : caseStmt.cases»
-						; Case limb
-						«var int label = caseLabelCount++»
-						«FOR constant : c.cases.constants»
-							; Comparison with constant
-							mov ecx, «e.getValue(b, constant)»
-							cmp eax, ecx
-							je .case_limb_body«label»
-						«ENDFOR» 
-						jmp .case_limb_out«label»
-						.case_limb_body«label»:
-							«e.compileStatement(b, c.statement)»
-							jmp .case_out«globalLabel»
-						.case_limb_out«label»:
-					«ENDFOR»
-					.case_out«globalLabel»:
 				«ENDIF»
 			«ENDIF»
 		«ENDIF»
