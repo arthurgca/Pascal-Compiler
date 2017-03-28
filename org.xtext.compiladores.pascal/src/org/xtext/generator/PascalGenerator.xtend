@@ -47,9 +47,9 @@ class PascalGenerator implements IGenerator2  {
 	private int conditionalLabelCount;
 	private int caseLabelCount;
 	private int caseGlobalLabelCount;
-	private String reg1;
-	private String reg2;
-	private String reg3;
+	private String reg1 = null;
+	private String reg2 = null;
+	private String reg3 = null;
 	
 	override doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 		for (e: resource.allContents.toIterable.filter(program)) {
@@ -285,6 +285,11 @@ class PascalGenerator implements IGenerator2  {
 			«ENDIF»
 		«ELSEIF f.variable != null»
 			«var variableFound = PascalValidator.search(e.getVariables(b), new Variable(f.variable.name))»
+			«IF reg2 == null»
+				«setReg2(variableFound.name)»
+			«ELSEIF reg3 == null»
+				«setReg3(variableFound.name)»
+			«ENDIF»
 			«IF variableFound.type == ElementType.CONSTANT»
 				«IF variableFound.varType.realType.toLowerCase.equals("array of char")»
 					lea eax, [«stringTable.get(variableFound.value as String)»]
@@ -299,7 +304,7 @@ class PascalGenerator implements IGenerator2  {
 					st eax, «variableFound.name»
 				«ELSE»
 					«««st eax, [«variableFound.name»_«getName(variableFound.containingBlock)»]
-					st eax, «variableFound.name»
+					st r1, «variableFound.name»
 				«ENDIF»
 			«ENDIF»
 		«ELSEIF f.function != null»
@@ -308,7 +313,8 @@ class PascalGenerator implements IGenerator2  {
 			«e.computeExpression(b, f.expression)»
 		«ELSEIF f.not != null»
 			«e.computeFactor(b, f.not)»
-			xor eax, 1 ; Logical not
+			not «reg2», 1 ; Logical not
+			ld r1, «reg2»
 		«ENDIF»
 	'''
 	//TODO push ecx removido
@@ -322,7 +328,11 @@ class PascalGenerator implements IGenerator2  {
 				«e.computeFactor(b, t.factors.get(index++))»
 				; computeTerm2
 				«IF operator.toLowerCase.equals("and")»
-					and ecx, eax ; Logical And
+					«IF reg2 != null && reg3 != null»
+						and «reg2», «reg3» ; Logical And
+					«ELSE»
+						and ecx, eax ; Logical And
+					«ENDIF»					
 				«ELSEIF operator.toLowerCase.equals("mod")»
 					st edx, eax ; Module
 					st eax, ecx
@@ -341,7 +351,11 @@ class PascalGenerator implements IGenerator2  {
 					mul ecx ; Multiply
 					st ecx, eax
 				«ENDIF»
-				st eax, ecx
+				«IF reg2 != null && reg3 != null»
+					st r1, «reg2»
+				«ELSE»
+					st r1, ecx
+				«ENDIF»				
 			«ENDFOR»
 		«ENDIF»
 		«««pop ecx
@@ -349,7 +363,7 @@ class PascalGenerator implements IGenerator2  {
 	
 	//TODO push ecx removido
 	def computeSimpleExpression(program e, block b, simple_expression exp) '''
-		«e.computeTerm(b, exp.terms.get(0) as term)»		
+		«e.computeTerm(b, exp.terms.get(0) as term)»
 		; computeSimpleExpression
 		«IF exp.prefixOperator != null»
 			«IF exp.prefixOperator.equals("-")»
@@ -365,14 +379,22 @@ class PascalGenerator implements IGenerator2  {
 				«ELSE»
 					st eax, «(exp.terms.get(index++) as any_number).integer»
 				«ENDIF»
-				«IF operator.equals("or")»
-					or ecx, eax ; Logical or
+				«IF operator.equals("or")»					
+					«IF reg2 != null && reg3 != null»
+						or «reg2», «reg3» ; Logical or
+					«ELSE»
+						or ecx, eax ; Logical or
+					«ENDIF»
 				«ELSEIF operator.equals("+")»
 					add ecx, eax ; Sum
 				«ELSEIF operator.equals("-")»
 					sub ecx, eax ; Sub
 				«ENDIF»
-				st eax, ecx
+				«IF reg2 != null && reg3 != null»
+					st r1, «reg2»
+				«ELSE»
+					st r1, ecx
+				«ENDIF»
 			«ENDFOR»
 		«ENDIF»
 		«««pop ecx
@@ -430,8 +452,8 @@ class PascalGenerator implements IGenerator2  {
 		«IF s.simple != null»
 			«IF s.simple.assignment != null»
 				«var variableFound = PascalValidator.search(e.getVariables(b), new Variable(s.simple.assignment.variable.name))»
-				; Atribuindo «s.simple.assignment.variable.name» [«setReg1(variableFound.name)» «setReg2('r1')» «setReg3('r3')»]				
-				«e.computeExpression(b, s.simple.assignment.expression)»				
+				; Atribuindo «s.simple.assignment.variable.name» [«setReg1(variableFound.name)»]
+				«e.computeExpression(b, s.simple.assignment.expression)»
 				«IF variableFound.type == ElementType.FUNCTION_RETURN»
 					st «variableFound.name», r1
 				«ELSE»
@@ -470,6 +492,8 @@ class PascalGenerator implements IGenerator2  {
 				«ENDIF»
 			«ENDIF»
 		«ENDIF»
+		«setReg1(null)»«setReg2(null)»«setReg3(null)»
+		
 	'''
 	
 	override afterGenerate(Resource input, IFileSystemAccess2 fsa, IGeneratorContext context) {
