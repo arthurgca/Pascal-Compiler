@@ -353,13 +353,16 @@ class PascalGenerator implements IGenerator2  {
 					lea eax, [«stringTable.get(variableFound.value as String)»]
 					mov ebx, «stringTable.get(variableFound.value as String)»_SIZE
 				«ELSE»
-					mov eax, «getName(variableFound.containingBlock)»_«variableFound.name»
+					«««mov eax, «getName(variableFound.containingBlock)»_«variableFound.name»
+					mov eax, «variableFound.name»
 				«ENDIF»
 			«ELSE»
 				«IF variableFound.type == ElementType.FUNCTION_RETURN»
-					mov eax, [«variableFound.extendedName»_«getName(variableFound.containingBlock)»]
+					«««mov eax, [«variableFound.extendedName»_«getName(variableFound.containingBlock)»]
+					mov eax, «variableFound.name»
 				«ELSE»
-					mov eax, [«variableFound.name»_«getName(variableFound.containingBlock)»]
+					«««mov eax, [«variableFound.name»_«getName(variableFound.containingBlock)»]
+					mov eax, «variableFound.name»
 				«ENDIF»
 			«ENDIF»
 		«ELSEIF f.function != null»
@@ -485,27 +488,17 @@ class PascalGenerator implements IGenerator2  {
 		«ENDFOR»
 	'''
 	
-	//TODO aqui ainda tem o registrado generico
+	//TODO aqui ainda tem o registrador generico
 	def CharSequence compileStatement(program e, block b, statement s) '''
 		«IF s.simple != null»
 			«IF s.simple.assignment != null»
-				; Atribuindo «s.simple.assignment.variable.name»
 				«var variableFound = PascalValidator.search(e.getVariables(b), new Variable(s.simple.assignment.variable.name))»
-				«setReg1(variableFound.name)»
-				«setReg2('r1')»
-				«setReg3('r3')»
-				
-				«e.computeExpression(b, s.simple.assignment.expression)»
-				; Atribuindo
-				
-				; Atribuindo f
-				
+				; Atribuindo «s.simple.assignment.variable.name» [«setReg1(variableFound.name)» «setReg2('r1')» «setReg3('r3')»]				
+				«e.computeExpression(b, s.simple.assignment.expression)»				
 				«IF variableFound.type == ElementType.FUNCTION_RETURN»
-					«««st [«variableFound.extendedName»_«getName(variableFound.containingBlock)»], r*
-					st «s.simple.assignment.variable.name», r1
+					st «variableFound.name», r1
 				«ELSE»
-					«««st [«variableFound.name»_«getName(variableFound.containingBlock)»], r*
-					st «s.simple.assignment.variable.name», r1
+					st «variableFound.name», r1
 				«ENDIF»
 			«ELSEIF s.simple.function_noargs != null»
 					; Call «s.simple.function_noargs»
