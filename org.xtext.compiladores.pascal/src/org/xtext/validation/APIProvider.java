@@ -10,7 +10,6 @@ public class APIProvider {
 	private final static String INTEGER = "integer";
 	private final static String BOOLEAN = "boolean";
 	private final static String NUMERIC = "numeric";
-	private final static String CHAR = "char";
 	private final static String REFLECT = "reflect";
 	private final static String STRING = "String";
 
@@ -76,7 +75,6 @@ public class APIProvider {
 		HashSet<Type> standardTypes = new HashSet<Type>();
 		standardTypes.add(new Type(INTEGER));
 		standardTypes.add(new Type(BOOLEAN));
-		standardTypes.add(new Type(CHAR));
 		standardTypes.add(new Type(STRING)); 
 		return standardTypes;
 	}
