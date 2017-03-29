@@ -291,8 +291,9 @@ class PascalGenerator implements IGenerator2  {
 			«e.computeExpression(b, f.expression)»
 		«ELSEIF f.not != null»
 			«e.computeFactor(b, f.not)»
-			not «reg2», 1 ; Logical not
-			ld r1, «reg2»
+			not r1, 1 ; Logical not
+			«««not «reg2», 1 ; Logical not
+			«««ld r1, «reg2»
 		«ENDIF»
 	'''
 	//TODO push ecx removido
@@ -302,7 +303,6 @@ class PascalGenerator implements IGenerator2  {
 		«IF t.operators != null»
 			«var int index = 1»
 			«FOR operator : t.operators»
-				st ecx, eax
 				«e.computeFactor(b, t.factors.get(index++))»
 				; computeTerm2
 				«IF operator.toLowerCase.equals("and")»
