@@ -255,7 +255,7 @@ class PascalGenerator implements IGenerator2  {
 		«var functionToSearch = new Procedure(name, arguments)»
 		«var functionFound = PascalValidator.searchWithTypeCoersion(e.getProcedures(b), functionToSearch)»
 		«FOR arg : functionFound.parameters»
-			ld edx, «arg.name»
+			«««ld edx, «arg.name»
 			«««push edx
 		«ENDFOR»
 		«IF function.expressions != null && function.expressions.expressions != null»
@@ -268,15 +268,15 @@ class PascalGenerator implements IGenerator2  {
 		call «functionFound.name»:
 		«FOR arg : functionFound.parameters»
 			«««pop edx
-			st «arg.name», edx
+			«««st «arg.name», edx
 		«ENDFOR»
 	'''
 	
 	//TODO usando um registrador temporario
 	def CharSequence computeFactor(program e, block b, factor f) '''
 		«IF f.string != null»
-			lea eax, [«stringTable.get(f.string)»]
-			st ebx, «stringTable.get(f.string)»_SIZE
+			ld r1, [«stringTable.get(f.string)»]
+			«««st ebx, «stringTable.get(f.string)»_SIZE
 		«ELSEIF f.number != null»
 			«IF f.number.number.integer != null»
 				ld r1, «f.number.number.integer»
@@ -432,7 +432,8 @@ class PascalGenerator implements IGenerator2  {
 		«IF s.simple != null»
 			«IF s.simple.assignment != null»
 				«var variableFound = PascalValidator.search(e.getVariables(b), new Variable(s.simple.assignment.variable.name))»
-				; Atribuindo «s.simple.assignment.variable.name» [«setReg1(variableFound.name)»]
+				; Atribuindo «s.simple.assignment.variable.name»
+				«setReg1(variableFound.name)»
 				«e.computeExpression(b, s.simple.assignment.expression)»
 				«IF variableFound.type == ElementType.FUNCTION_RETURN»
 					st «variableFound.name», r1
