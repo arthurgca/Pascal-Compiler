@@ -317,8 +317,6 @@ class PascalGenerator implements IGenerator2  {
 		«ELSEIF f.not != null»
 			«e.computeFactor(b, f.not)»
 			not r1, 1 ; Logical not
-			«««not «reg2», 1 ; Logical not
-			«««ld r1, «reg2»
 		«ENDIF»
 	'''
 	//TODO push ecx removido
@@ -335,24 +333,11 @@ class PascalGenerator implements IGenerator2  {
 						and «reg2», «reg3» ; Logical And
 					«ELSE»
 						and ecx, eax ; Logical And
-					«ENDIF»					
-				«ELSEIF operator.toLowerCase.equals("mod")»
-					st edx, eax ; Module
-					st eax, ecx
-					st ecx, edx
-					cdq
-					idiv ecx
-					st ecx, edx
+					«ENDIF»
 				«ELSEIF operator.toLowerCase.equals("div") || operator.equals("/")»
-					st edx, eax ; Divide
-					st eax, ecx
-					st ecx, edx
-					cdq
-					idiv ecx
-					st ecx, eax
+					div «reg2», «reg2», r1 ; Divide
 				«ELSEIF operator.equals("*")»
-					mul ecx ; Multiply
-					st ecx, eax
+					mul «reg2», «reg2», r1 ; Multiply
 				«ENDIF»
 				«IF reg2 != null && reg3 != null»
 					ld r1, «reg2»
