@@ -260,10 +260,8 @@ class PascalGenerator implements IGenerator2  {
 			«ENDIF»
 		«ELSEIF f.boolean != null»
 			«IF f.boolean.toLowerCase.equals("true")»
-				«««st r1, 1
 				ld r1, 1
 			«ELSE»
-				«««st r1, 0
 				ld r1, 0
 			«ENDIF»
 		«ELSEIF f.variable != null»
@@ -352,7 +350,7 @@ class PascalGenerator implements IGenerator2  {
 		«IF exp.operators != null»
 			«var int index = 1»
 			«FOR operator : exp.operators»
-				st ecx, eax
+				«««st ecx, eax eh
 				«IF exp.terms.get(index) instanceof term»
 					«e.computeTerm(b, exp.terms.get(index++) as term)»
 				«ELSE»
@@ -365,9 +363,9 @@ class PascalGenerator implements IGenerator2  {
 						or ecx, eax ; Logical or
 					«ENDIF»
 				«ELSEIF operator.equals("+")»
-					add ecx, eax ; Sum
+					add «reg2», «reg2», r1 ; Sum
 				«ELSEIF operator.equals("-")»
-					sub ecx, eax ; Sub
+					sub «reg2», «reg2», r1 ; Sub
 				«ENDIF»
 				«IF reg2 != null && reg3 != null»
 					ld r1, «reg2»
