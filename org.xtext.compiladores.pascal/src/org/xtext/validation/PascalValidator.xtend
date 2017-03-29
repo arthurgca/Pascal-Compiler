@@ -154,17 +154,9 @@ class PascalValidator extends AbstractPascalValidator {
 	
 	def Type getType(block b, String type) {
 		if (type == null) return null;
-		if (type.length > 1 && type.substring(0, 1).equals("^")) {
-			return new ComposedType(getType(b, type.substring(1)), ComposedTypeKind.POINTER);
-		} else if (type.length > 9 && type.substring(0, 9).equals("array of ")) {
-			return new ComposedType(getType(b, type.substring(9)), ComposedTypeKind.ARRAY);
-		}
 		return new Type(type, false, getRealType(b, type));	
 	}
 	
-	def Type getComposedType(block b, String type, ComposedTypeKind kind) {
-		return new ComposedType(getType(b, type), kind);
-	}
 	
 	def Type getType(block b, type t) {  
 		var Type type = new Type("nil");
@@ -186,33 +178,20 @@ class PascalValidator extends AbstractPascalValidator {
 			//	syntetizedType += "packed ";
 			//}
 			var unpacked = structured.type;
-			if (unpacked.array != null) {
-				type = new ComposedType(getType(b, unpacked.array.type), ComposedTypeKind.ARRAY);
-			} else if (unpacked.dynamic != null) {
-				type = new ComposedType(getType(b, unpacked.dynamic.type), ComposedTypeKind.ARRAY);
-			} else if (unpacked.record != null) {
+			if (unpacked.record != null) {
 				type = new Type("record");
 			} else if (unpacked.set != null) {
 				type = getType(b, unpacked.set.type);
 			} else if (unpacked.file != null) {
 				type = getType(b, unpacked.file.type);
 			}
-		} else if (t.pointer != null) {
-			type = new ComposedType(getType(b, t.pointer.type), ComposedTypeKind.POINTER);
-		} 
+		}
 		return type;
 	}
 	
 	def Type getType(block b, parameter_type type) {
 		var t = new Type("nil");
-		if (type.array != null) {
-			var array = type.array;
-			if (array.packed != null) {
-				t = new ComposedType(getType(b, array.packed.name), ComposedTypeKind.ARRAY);
-			} else if (array.unpacked != null) {
-				t = new ComposedType(getType(b, array.unpacked.type), ComposedTypeKind.ARRAY);
-			}
-		} else if (type.name != null) {
+		if (type.name != null) {
 			if (search(types.get(b), new Type(type.name)) == null) {
 				insertError(type, "Undefined type.", ErrorType.UNDEFINED_TYPE, PascalPackage.Literals.PARAMETER_TYPE__NAME);
 			} else {
