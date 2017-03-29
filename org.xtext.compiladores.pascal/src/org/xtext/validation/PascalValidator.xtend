@@ -831,19 +831,6 @@ class PascalValidator extends AbstractPascalValidator {
 			if (structured.compound != null) {
 				var compound = structured.compound; 
 				checkStatements(b, compound.sequence); 
-			} else if (structured.repetitive != null) {
-				var repetitive = structured.repetitive;	
-				if (repetitive.whileStmt != null) {
-					checkExpression(b, repetitive.whileStmt.expression);
-					checkStatement(b, repetitive.whileStmt.statement);
-				} else if (repetitive.repeatStmt != null) {
-					checkStatements(b, repetitive.repeatStmt.sequence);
-					checkExpression(b, repetitive.repeatStmt.expression);
-				} else if (repetitive.forStmt != null) {
-					checkVariable(b, repetitive.forStmt.assignment.variable, true);
-					checkExpression(b, repetitive.forStmt.expression);
-					checkStatement(b, repetitive.forStmt.statement);
-				}
 			} else if (structured.conditional != null) {
 				var conditional = structured.conditional;
 				if (conditional.ifStmt != null) {
@@ -858,33 +845,8 @@ class PascalValidator extends AbstractPascalValidator {
 					if (ifStmt.elseStatement != null) {
 						checkStatement(b, ifStmt.elseStatement);
 					}
-				} else if (conditional.caseStmt != null) {
-					var caseStmt = conditional.caseStmt;
-					checkExpression(b, caseStmt.expression);
-					var exprType = getType(b, caseStmt.expression);
-					if (caseStmt.cases != null) {
-						var Set<Object> limbValues = new HashSet<Object>();
-						for (case_limb limb : caseStmt.cases) {
-							checkStatement(b, limb.statement);
-							for (constant c : limb.cases.constants) {
-								checkConstant(b, c);
-							}
-							var limbType = getType(b, limb, limbValues);
-							if (!TypeInferer.areTypesCompatibles(exprType, limbType)) {
-								insertError(limb, "Cannot convert " + limbType + " to " + exprType + ".", ErrorType.TYPE_CONVERSION_ERROR, PascalPackage.Literals.CASE_LIMB__CASES);
-							} else {
-								removeError(limb, ErrorType.TYPE_CONVERSION_ERROR);
-							}
-						}
-					}
-				} 
-			} else if (structured.withStmt != null) {
-				var withStmt = structured.withStmt;
-				for (variable v : withStmt.variables) {
-					checkVariable(b, v, false);
-				}
-				checkStatement(b, withStmt.statement);
-			}
+				}  
+			} 
 		}
 	}
 	
