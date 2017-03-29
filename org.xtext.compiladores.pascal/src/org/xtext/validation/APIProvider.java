@@ -7,24 +7,12 @@ import java.util.Set;
 
 public class APIProvider {	
 	
-	private final static String REAL = "real";
 	private final static String INTEGER = "integer";
-	private final static String SHORT_INT = "shortint";
-	private final static String LONG_INT = "longint";
 	private final static String BOOLEAN = "boolean";
 	private final static String NUMERIC = "numeric";
-	private final static String CHAR = "char";
 	private final static String REFLECT = "reflect";
-	private final static String ENUMERATED = "...enumerated";
 	private final static String STRING = "String";
 
-
-	private final static String ARRAY_OF_INTEGER = "array of integer";
-	
-	
-	private final static String NEWTYPE = "?";
-	private final static String POINTER_NEW_TYPE = "^?";
-	private final static String ARRAY_OF_NEW_TYPE = "[]?";
 	
 	private final static String VOID = "void";
 
@@ -60,27 +48,9 @@ public class APIProvider {
 				addAbstraction(abstractions, name, returnType, newParameters);
 				newParameters = new String[parameters.length];
 				System.arraycopy(parameters, 0, newParameters, 0, parameters.length);
-				newParameters[i] = REAL;
-				addAbstraction(abstractions, name, returnType, newParameters);
 				isVirtual = true;
-			} else if (parameters[i].contains(NEWTYPE)) {
-				for (Type t : getStandardTypes()) {
-					String newParameterName = t.name;
-					String[] newParameters = new String[parameters.length];
-					System.arraycopy(parameters, 0, newParameters, 0, parameters.length);
-					if (parameters[i].equals(NEWTYPE)) {
-						newParameters[i] = newParameterName;
-						addAbstraction(abstractions, name, returnType, newParameters); 
-					} else if (parameters[i].equals(POINTER_NEW_TYPE)) {
-						newParameters[i] = "^" + newParameterName; 
-						addAbstraction(abstractions, name, returnType, newParameters); 
-					} else if (parameters[i].equals(ARRAY_OF_NEW_TYPE)) {
-						newParameters[i] = "array of " + newParameterName;
-						addAbstraction(abstractions, name, returnType, newParameters);
-					}
-				} 
-				isVirtual = true;
-			}
+			} 
+			isVirtual = true;
 		}
 		if (!isVirtual)  {
 			if (returnType.equals(REFLECT)) {
@@ -94,61 +64,16 @@ public class APIProvider {
 			}
 		}
 	}
-	
-	private static void setStandardAbstractions(Set<Procedure> it) {
-		addAbstraction(it, "round", INTEGER, REAL); 
-		addAbstraction(it, "chr", CHAR, INTEGER);
-		addAbstraction(it, "abs", REFLECT, NUMERIC);
-		addAbstraction(it, "odd", BOOLEAN, INTEGER);
-		addAbstraction(it, "sqr", REFLECT, NUMERIC);
-		addAbstraction(it, "sqrt", REAL, NUMERIC);
-		addAbstraction(it, "sin", REAL, NUMERIC);
-		addAbstraction(it, "cos", REAL, NUMERIC);
-		addAbstraction(it, "arctan", REAL, NUMERIC);
-		addAbstraction(it, "ln", REAL, NUMERIC);
-		addAbstraction(it, "exp", REAL, NUMERIC);
-		addAbstraction(it, "succ", ENUMERATED, ENUMERATED);
-		addAbstraction(it, "succ", INTEGER, INTEGER);
-		addAbstraction(it, "pred", ENUMERATED, ENUMERATED);
-		addAbstraction(it, "pred", INTEGER, INTEGER);
-		addAbstraction(it, "new", VOID, POINTER_NEW_TYPE);
-		addAbstraction(it, "dispose", VOID, POINTER_NEW_TYPE);
-		addAbstraction(it, "strconcat", VOID, STRING, STRING);
-		addAbstraction(it, "strdelete", VOID, STRING, INTEGER, INTEGER);
-		addAbstraction(it, "strinsert", VOID, STRING, STRING, INTEGER);
-		addAbstraction(it, "strlen", INTEGER, STRING);
-		addAbstraction(it, "strscan", INTEGER, STRING, STRING);
-		addAbstraction(it, "strlen", INTEGER, STRING);
-		addAbstraction(it, "substr", VOID, STRING, INTEGER, INTEGER, STRING);
-		addAbstraction(it, "address", INTEGER, POINTER_NEW_TYPE);	
-		addAbstraction(it, "length", INTEGER, ARRAY_OF_NEW_TYPE);
-		addAbstraction(it, "setlength", VOID, ARRAY_OF_NEW_TYPE, INTEGER);
-		addAbstraction(it, "write", VOID, NEWTYPE);
-		addAbstraction(it, "write", VOID, STRING);
-		addAbstraction(it, "write", VOID); 
-		addAbstraction(it, "writeln", VOID, NEWTYPE);
-		addAbstraction(it, "writeln", VOID, STRING);
-		addAbstraction(it, "writeln", VOID);
-		addAbstraction(it, "read", VOID, NEWTYPE);
-		addAbstraction(it, "read", VOID, STRING);
-		addAbstraction(it, "read", VOID);
-		addAbstraction(it, "readln", VOID, NEWTYPE);
-		addAbstraction(it, "readln", VOID, STRING);
-		addAbstraction(it, "readln", VOID);
-	}
+
 	
 	private static Set<Procedure> getStandardAbstractions() {
 		Set<Procedure> abstractions = new HashSet<Procedure>();
-		setStandardAbstractions(abstractions);
 		return abstractions;
 	} 
 	
 	private static HashSet<Type> getStandardTypes() {
 		HashSet<Type> standardTypes = new HashSet<Type>();
-		standardTypes.add(new Type(REAL));
 		standardTypes.add(new Type(INTEGER));
-		standardTypes.add(new Type(SHORT_INT));
-		standardTypes.add(new Type(LONG_INT));
 		standardTypes.add(new Type(BOOLEAN));
 		standardTypes.add(new Type(STRING)); 
 		return standardTypes;
