@@ -241,7 +241,6 @@ class PascalGenerator implements IGenerator2  {
 			«procedure.name»:
 				«e.compileSequence(procedure.declaration.block, procedure.declaration.block.statement.sequence)»
 				«IF procedure instanceof Function»
-				«««st eax, «procedure.extendedName»
 				«ENDIF»
 				ret ; return
 				
@@ -269,7 +268,7 @@ class PascalGenerator implements IGenerator2  {
 	
 	def CharSequence computeFactor(program e, block b, factor f) '''
 		«IF f.string != null»
-			ld r1, [«stringTable.get(f.string)»]
+			ld r1, «stringTable.get(f.string)»
 		«ELSEIF f.number != null»
 			«IF f.number.number.integer != null»
 				ld r1, «f.number.number.integer»
@@ -297,7 +296,7 @@ class PascalGenerator implements IGenerator2  {
 				«ENDIF»
 			«ELSE»
 				«IF variableFound.type == ElementType.FUNCTION_RETURN»
-					st eax, «variableFound.name»
+					«««st var, «variableFound.name»
 				«ELSE»
 					ld r1, «variableFound.name»
 				«ENDIF»
@@ -339,18 +338,18 @@ class PascalGenerator implements IGenerator2  {
 	
 	def computeSimpleExpression(program e, block b, simple_expression exp) '''
 		«e.computeTerm(b, exp.terms.get(0) as term)»
-		«IF exp.prefixOperator != null»
-			«IF exp.prefixOperator.equals("-")»
-				neg aex
-			«ENDIF» 
-		«ENDIF»
+		«««IF exp.prefixOperator != null»
+			«««IF exp.prefixOperator.equals("-")»
+				«««neg aex
+			«««ENDIF» 
+		«««ENDIF»
 		«IF exp.operators != null»
 			«var int index = 1»
 			«FOR operator : exp.operators»
 				«IF exp.terms.get(index) instanceof term»
 					«e.computeTerm(b, exp.terms.get(index++) as term)»
 				«ELSE»
-					st eax, «(exp.terms.get(index++) as any_number).integer»
+					«««st var, «(exp.terms.get(index++) as any_number).integer»
 				«ENDIF»
 				«IF operator.equals("or")»					
 					«IF reg2 != null && reg3 != null»
@@ -378,8 +377,6 @@ class PascalGenerator implements IGenerator2  {
 			«var int index = 1»
 			«FOR operator : exp.operators»
 				«e.computeSimpleExpression(b, exp.expressions.get(index++))»
-				«««st ecx, eax
-				«««cmp ecx, eax
 				«IF operator.equals("=")»
 					beq «reg2», «reg3», true«labelCount» ; Equals
 					br false«labelCount»
@@ -403,8 +400,6 @@ class PascalGenerator implements IGenerator2  {
 					br if_body«labelCount»
 				false«labelCount»:
 					br else_body«labelCount»
-				«««fim_cond«labelCount++»:
-					«««st eax, ecx
 			«ENDFOR»
 		«ENDIF»
 	'''
@@ -453,7 +448,6 @@ class PascalGenerator implements IGenerator2  {
 						«IF ifStmt.elseStatement != null»
 							«e.compileStatement(b, ifStmt.elseStatement)»
 						«ENDIF»
-					«««conditional_out«label»:
 				«ENDIF»
 			«ENDIF»
 		«ENDIF»
