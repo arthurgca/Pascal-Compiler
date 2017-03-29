@@ -237,7 +237,7 @@ class PascalGenerator implements IGenerator2  {
 	
 	def CharSequence compileProcedure(program e, block b, Procedure procedure) '''
 		«IF !procedure.forward && !procedure.inherited»
-			; Procedure «procedure.name»«procedure.parameters»
+			; Procedure «procedure.name»
 			«procedure.name»:
 				«e.compileSequence(procedure.declaration.block, procedure.declaration.block.statement.sequence)»
 				«IF procedure instanceof Function»
@@ -377,9 +377,9 @@ class PascalGenerator implements IGenerator2  {
 		«IF exp.operators != null»
 			«var int index = 1»
 			«FOR operator : exp.operators»
-				st ecx, eax
 				«e.computeSimpleExpression(b, exp.expressions.get(index++))»
-				cmp ecx, eax
+				«««st ecx, eax
+				«««cmp ecx, eax
 				«IF operator.equals("=")»
 					beq «reg2», «reg3», true«labelCount» ; Equals
 					br false«labelCount»
@@ -400,12 +400,11 @@ class PascalGenerator implements IGenerator2  {
 					br false«labelCount»
 				«ENDIF»
 				true«labelCount»:
-					st ecx, 1
-					br fim_cond«labelCount»
+					br if_body«labelCount»
 				false«labelCount»:
-					st ecx, 0
-				fim_cond«labelCount++»:
-					st eax, ecx
+					br else_body«labelCount»
+				«««fim_cond«labelCount++»:
+					«««st eax, ecx
 			«ENDFOR»
 		«ENDIF»
 	'''
@@ -449,7 +448,6 @@ class PascalGenerator implements IGenerator2  {
 					«e.computeExpression(b, ifStmt.expression)»
 					and eax, 1 ; Setting zero flag
 					«var int label = conditionalLabelCount++»
-					bz else_body«label»
 					if_body«label»:
 						«e.compileStatement(b, ifStmt.ifStatement)»
 						br conditional_out«label»
@@ -457,11 +455,11 @@ class PascalGenerator implements IGenerator2  {
 						«IF ifStmt.elseStatement != null»
 							«e.compileStatement(b, ifStmt.elseStatement)»
 						«ENDIF»
-					conditional_out«label»:
+					«««conditional_out«label»:
 				«ENDIF»
 			«ENDIF»
 		«ENDIF»
-		«setReg1(null)»«setReg2(null)»«setReg3(null)»		
+		«setReg1(null)»«setReg2(null)»«setReg3(null)»
 	'''
 	
 	override afterGenerate(Resource input, IFileSystemAccess2 fsa, IGeneratorContext context) {
