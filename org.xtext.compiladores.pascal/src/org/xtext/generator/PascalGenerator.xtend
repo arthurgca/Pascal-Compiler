@@ -95,6 +95,23 @@ class PascalGenerator implements IGenerator2  {
 	def getProcedures(program e, block b) {
 		return getProcedures(e).get(b);	
 	}
+	
+	def createStringTable(program e) {
+		for (s : e.eAllContents.toIterable.filter(factor)) {
+			if (s.string != null) {
+				if (!stringTable.containsKey(s.string)) {
+					stringTable.put(s.string, "__STRING_" + stringTable.size());
+				}
+			}
+		}
+		for (const : e.eAllContents.toIterable.filter(constant)) {
+			if (const.string != null) {
+				if (!stringTable.containsKey(const.string)) {
+					stringTable.put(const.string, "__STRING_" + stringTable.size());
+				}
+			}
+		}
+	}
 
 	def getValue(Variable v) {
 		if (v.value instanceof String) {
@@ -143,13 +160,21 @@ class PascalGenerator implements IGenerator2  {
 	}
 	
 	def compile(program e) '''
-		; Programa «e.heading.name»		
-		
+		; Programa «e.heading.name»
+		; Data
+		«e.createStringTable»
+		«e.compileStrings»
 		; Codigo
 		«e.compileAllProcedures(e.block)»
 		; Main:
 		«e.compileSequence(e.block, e.block.statement.sequence)» 
 		ret	; Fim do programa	
+	'''
+	
+	def compileStrings(program e) '''
+		«FOR s : stringTable.keySet» 
+			«e.compileString(s, stringTable.get(s))»
+		«ENDFOR»
 	'''
 	def CharSequence compileAllProcedures(program e, block b) '''
 		«e.compileProcedures(b, e.getProcedures(b))»
@@ -176,7 +201,7 @@ class PascalGenerator implements IGenerator2  {
 		
 	def compileString(program e, String name, String value) '''
 		«value» db '«name.replaceAll("'", "")»', 0
-		«value»_SIZE equ $-«value»
+		«value»_SIZE equ $-«name»
 	'''
 	
 	def compileVariable(program e, block b, Variable v) '''
@@ -230,26 +255,25 @@ class PascalGenerator implements IGenerator2  {
 		«var functionToSearch = new Procedure(name, arguments)»
 		«var functionFound = PascalValidator.searchWithTypeCoersion(e.getProcedures(b), functionToSearch)»
 		«FOR arg : functionFound.parameters»
-			st edx, «arg.name»
-			push edx
+			ld edx, «arg.name»
+			«««push edx
 		«ENDFOR»
 		«IF function.expressions != null && function.expressions.expressions != null»
 			«var exps = function.expressions.expressions»
 			«FOR i : 0..exps.size-1»
 				«e.computeExpression(b, exps.get(i))»
-				st «functionFound.parameters.get(i).name», eax
+				st «functionFound.parameters.get(i).name», r1
 			«ENDFOR»
 		«ENDIF»
-		call «functionFound.extendedName»
+		call «functionFound.name»:
 		«FOR arg : functionFound.parameters»
-			pop edx
+			«««pop edx
 			st «arg.name», edx
 		«ENDFOR»
 	'''
 	
 	//TODO usando um registrador temporario
 	def CharSequence computeFactor(program e, block b, factor f) '''
-		; computeFactor
 		«IF f.string != null»
 			lea eax, [«stringTable.get(f.string)»]
 			st ebx, «stringTable.get(f.string)»_SIZE
@@ -260,10 +284,8 @@ class PascalGenerator implements IGenerator2  {
 			«ENDIF»
 		«ELSEIF f.boolean != null»
 			«IF f.boolean.toLowerCase.equals("true")»
-				«««st r1, 1
 				ld r1, 1
 			«ELSE»
-				«««st r1, 0
 				ld r1, 0
 			«ENDIF»
 		«ELSEIF f.variable != null»
@@ -293,43 +315,26 @@ class PascalGenerator implements IGenerator2  {
 			«e.computeExpression(b, f.expression)»
 		«ELSEIF f.not != null»
 			«e.computeFactor(b, f.not)»
-			not «reg2», 1 ; Logical not
-			ld r1, «reg2»
+			not r1, 1 ; Logical not
 		«ENDIF»
 	'''
 	//TODO push ecx removido
 	def computeTerm(program e, block b, term t) '''
 		«e.computeFactor(b, t.factors.get(0))»
-		; computeTerm1
 		«IF t.operators != null»
 			«var int index = 1»
 			«FOR operator : t.operators»
-				st ecx, eax
 				«e.computeFactor(b, t.factors.get(index++))»
-				; computeTerm2
 				«IF operator.toLowerCase.equals("and")»
 					«IF reg2 != null && reg3 != null»
 						and «reg2», «reg3» ; Logical And
 					«ELSE»
 						and ecx, eax ; Logical And
-					«ENDIF»					
-				«ELSEIF operator.toLowerCase.equals("mod")»
-					st edx, eax ; Module
-					st eax, ecx
-					st ecx, edx
-					cdq
-					idiv ecx
-					st ecx, edx
+					«ENDIF»
 				«ELSEIF operator.toLowerCase.equals("div") || operator.equals("/")»
-					st edx, eax ; Divide
-					st eax, ecx
-					st ecx, edx
-					cdq
-					idiv ecx
-					st ecx, eax
+					div «reg2», «reg2», r1 ; Divide
 				«ELSEIF operator.equals("*")»
-					mul ecx ; Multiply
-					st ecx, eax
+					mul «reg2», «reg2», r1 ; Multiply
 				«ENDIF»
 				«IF reg2 != null && reg3 != null»
 					ld r1, «reg2»
@@ -343,7 +348,6 @@ class PascalGenerator implements IGenerator2  {
 	//TODO push ecx removido
 	def computeSimpleExpression(program e, block b, simple_expression exp) '''
 		«e.computeTerm(b, exp.terms.get(0) as term)»
-		; computeSimpleExpression
 		«IF exp.prefixOperator != null»
 			«IF exp.prefixOperator.equals("-")»
 				neg aex
@@ -352,7 +356,7 @@ class PascalGenerator implements IGenerator2  {
 		«IF exp.operators != null»
 			«var int index = 1»
 			«FOR operator : exp.operators»
-				st ecx, eax
+				«««st ecx, eax eh
 				«IF exp.terms.get(index) instanceof term»
 					«e.computeTerm(b, exp.terms.get(index++) as term)»
 				«ELSE»
@@ -365,9 +369,9 @@ class PascalGenerator implements IGenerator2  {
 						or ecx, eax ; Logical or
 					«ENDIF»
 				«ELSEIF operator.equals("+")»
-					add ecx, eax ; Sum
+					add «reg2», «reg2», r1 ; Sum
 				«ELSEIF operator.equals("-")»
-					sub ecx, eax ; Sub
+					sub «reg2», «reg2», r1 ; Sub
 				«ENDIF»
 				«IF reg2 != null && reg3 != null»
 					ld r1, «reg2»
@@ -381,7 +385,6 @@ class PascalGenerator implements IGenerator2  {
 	//TODO push ecx removido
 	def computeExpression(program e, block b, expression exp) '''
 		«e.computeSimpleExpression(b, exp.expressions.get(0))»
-		; computeExpression
 		«IF exp.operators != null»
 			«var int index = 1»
 			«FOR operator : exp.operators»
