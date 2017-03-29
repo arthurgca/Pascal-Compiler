@@ -241,7 +241,6 @@ class PascalGenerator implements IGenerator2  {
 			«procedure.name»:
 				«e.compileSequence(procedure.declaration.block, procedure.declaration.block.statement.sequence)»
 				«IF procedure instanceof Function»
-				«««st eax, [«procedure.extendedName»_«getName(procedure.declaration.block)»]
 				st eax, «procedure.extendedName»
 				«ENDIF»
 				ret ;return
@@ -255,8 +254,6 @@ class PascalGenerator implements IGenerator2  {
 		«var functionToSearch = new Procedure(name, arguments)»
 		«var functionFound = PascalValidator.searchWithTypeCoersion(e.getProcedures(b), functionToSearch)»
 		«FOR arg : functionFound.parameters»
-			«««ld edx, «arg.name»
-			«««push edx
 		«ENDFOR»
 		«IF function.expressions != null && function.expressions.expressions != null»
 			«var exps = function.expressions.expressions»
@@ -267,16 +264,12 @@ class PascalGenerator implements IGenerator2  {
 		«ENDIF»
 		call «functionFound.name»:
 		«FOR arg : functionFound.parameters»
-			«««pop edx
-			«««st «arg.name», edx
 		«ENDFOR»
 	'''
 	
-	//TODO usando um registrador temporario
 	def CharSequence computeFactor(program e, block b, factor f) '''
 		«IF f.string != null»
 			ld r1, [«stringTable.get(f.string)»]
-			«««st ebx, «stringTable.get(f.string)»_SIZE
 		«ELSEIF f.number != null»
 			«IF f.number.number.integer != null»
 				ld r1, «f.number.number.integer»
@@ -315,10 +308,9 @@ class PascalGenerator implements IGenerator2  {
 			«e.computeExpression(b, f.expression)»
 		«ELSEIF f.not != null»
 			«e.computeFactor(b, f.not)»
-			not r1, 1 ; Logical not
+			not r1, 1
 		«ENDIF»
 	'''
-	//TODO push ecx removido
 	def computeTerm(program e, block b, term t) '''
 		«e.computeFactor(b, t.factors.get(0))»
 		«IF t.operators != null»
@@ -327,14 +319,14 @@ class PascalGenerator implements IGenerator2  {
 				«e.computeFactor(b, t.factors.get(index++))»
 				«IF operator.toLowerCase.equals("and")»
 					«IF reg2 != null && reg3 != null»
-						and «reg2», «reg3» ; Logical And
+						and «reg2», «reg3»
 					«ELSE»
-						and ecx, eax ; Logical And
+						and ecx, eax
 					«ENDIF»
 				«ELSEIF operator.toLowerCase.equals("div") || operator.equals("/")»
-					div «reg2», «reg2», r1 ; Divide
+					div «reg2», «reg2», r1
 				«ELSEIF operator.equals("*")»
-					mul «reg2», «reg2», r1 ; Multiply
+					mul «reg2», «reg2», r1
 				«ENDIF»
 				«IF reg2 != null && reg3 != null»
 					ld r1, «reg2»
@@ -345,7 +337,6 @@ class PascalGenerator implements IGenerator2  {
 		«ENDIF»
 	'''
 	
-	//TODO push ecx removido
 	def computeSimpleExpression(program e, block b, simple_expression exp) '''
 		«e.computeTerm(b, exp.terms.get(0) as term)»
 		«IF exp.prefixOperator != null»
@@ -356,7 +347,6 @@ class PascalGenerator implements IGenerator2  {
 		«IF exp.operators != null»
 			«var int index = 1»
 			«FOR operator : exp.operators»
-				«««st ecx, eax eh
 				«IF exp.terms.get(index) instanceof term»
 					«e.computeTerm(b, exp.terms.get(index++) as term)»
 				«ELSE»
@@ -364,14 +354,14 @@ class PascalGenerator implements IGenerator2  {
 				«ENDIF»
 				«IF operator.equals("or")»					
 					«IF reg2 != null && reg3 != null»
-						or «reg2», «reg3» ; Logical or
+						or «reg2», «reg3»
 					«ELSE»
-						or ecx, eax ; Logical or
+						or ecx, eax
 					«ENDIF»
 				«ELSEIF operator.equals("+")»
-					add «reg2», «reg2», r1 ; Sum
+					add «reg2», «reg2», r1
 				«ELSEIF operator.equals("-")»
-					sub «reg2», «reg2», r1 ; Sub
+					sub «reg2», «reg2», r1
 				«ENDIF»
 				«IF reg2 != null && reg3 != null»
 					ld r1, «reg2»
@@ -382,7 +372,6 @@ class PascalGenerator implements IGenerator2  {
 		«ENDIF»
 	'''
 	
-	//TODO push ecx removido
 	def computeExpression(program e, block b, expression exp) '''
 		«e.computeSimpleExpression(b, exp.expressions.get(0))»
 		«IF exp.operators != null»
@@ -392,30 +381,30 @@ class PascalGenerator implements IGenerator2  {
 				«e.computeSimpleExpression(b, exp.expressions.get(index++))»
 				cmp ecx, eax
 				«IF operator.equals("=")»
-					je .set_to_true«labelCount» ; Equal
-					jmp .set_to_false«labelCount»
+					beq «reg2», «reg3», true«labelCount» ; Equals
+					br false«labelCount»
 				«ELSEIF operator.equals(">")»
-					jg .set_to_true«labelCount» ; Greater
-					jmp .set_to_false«labelCount»
+					bgt «reg2», «reg3», true«labelCount» ; Greater
+					bz «reg2», false«labelCount»
 				«ELSEIF operator.equals(">=")»
-					jge .set_to_true«labelCount» ; Greater or equal
-					jmp .set_to_false«labelCount»
+					bge «reg2», «reg3», true«labelCount» ; Greater or equal
+					br false«labelCount»
 				«ELSEIF operator.equals("<")»
-					jl .set_to_true«labelCount» ; Lesser
-					jmp .set_to_false«labelCount»
+					blt «reg2», «reg3», true«labelCount» ; Lesser
+					br false«labelCount»
 				«ELSEIF operator.equals("<=")»
-					jle .set_to_true«labelCount» ; Lesser of equal
-					jmp .set_to_false«labelCount»
+					ble «reg2», «reg3», true«labelCount» ; Lesser of equal
+					br false«labelCount»
 				«ELSEIF operator.equals("<>")»
-					jne .set_to_true«labelCount» ; Different
-					jmp .set_to_false«labelCount»
+					bne «reg2», «reg3», true«labelCount» ; Different
+					br false«labelCount»
 				«ENDIF»
-				.set_to_true«labelCount»:
+				true«labelCount»:
 					st ecx, 1
-					jmp .out«labelCount»
-				.set_to_false«labelCount»:
+					br fim_cond«labelCount»
+				false«labelCount»:
 					st ecx, 0
-				.out«labelCount++»:
+				fim_cond«labelCount++»:
 					st eax, ecx
 			«ENDFOR»
 		«ENDIF»
@@ -427,7 +416,6 @@ class PascalGenerator implements IGenerator2  {
 		«ENDFOR»
 	'''
 	
-	//TODO aqui ainda tem o registrador generico
 	def CharSequence compileStatement(program e, block b, statement s) '''
 		«IF s.simple != null»
 			«IF s.simple.assignment != null»
@@ -461,20 +449,19 @@ class PascalGenerator implements IGenerator2  {
 					«e.computeExpression(b, ifStmt.expression)»
 					and eax, 1 ; Setting zero flag
 					«var int label = conditionalLabelCount++»
-					jz .else_body«label»
-					.if_body«label»:
+					bz else_body«label»
+					if_body«label»:
 						«e.compileStatement(b, ifStmt.ifStatement)»
-						jmp .conditional_out«label»
-					.else_body«label»:
+						br conditional_out«label»
+					else_body«label»:
 						«IF ifStmt.elseStatement != null»
 							«e.compileStatement(b, ifStmt.elseStatement)»
 						«ENDIF»
-					.conditional_out«label»:
+					conditional_out«label»:
 				«ENDIF»
 			«ENDIF»
 		«ENDIF»
-		«setReg1(null)»«setReg2(null)»«setReg3(null)»
-		
+		«setReg1(null)»«setReg2(null)»«setReg3(null)»		
 	'''
 	
 	override afterGenerate(Resource input, IFileSystemAccess2 fsa, IGeneratorContext context) {
