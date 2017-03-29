@@ -255,26 +255,25 @@ class PascalGenerator implements IGenerator2  {
 		«var functionToSearch = new Procedure(name, arguments)»
 		«var functionFound = PascalValidator.searchWithTypeCoersion(e.getProcedures(b), functionToSearch)»
 		«FOR arg : functionFound.parameters»
-			st edx, «arg.name»
-			push edx
+			ld edx, «arg.name»
+			«««push edx
 		«ENDFOR»
 		«IF function.expressions != null && function.expressions.expressions != null»
 			«var exps = function.expressions.expressions»
 			«FOR i : 0..exps.size-1»
 				«e.computeExpression(b, exps.get(i))»
-				st «functionFound.parameters.get(i).name», eax
+				st «functionFound.parameters.get(i).name», r1
 			«ENDFOR»
 		«ENDIF»
-		call «functionFound.extendedName»
+		call «functionFound.name»:
 		«FOR arg : functionFound.parameters»
-			pop edx
+			«««pop edx
 			st «arg.name», edx
 		«ENDFOR»
 	'''
 	
 	//TODO usando um registrador temporario
 	def CharSequence computeFactor(program e, block b, factor f) '''
-		; computeFactor
 		«IF f.string != null»
 			lea eax, [«stringTable.get(f.string)»]
 			st ebx, «stringTable.get(f.string)»_SIZE
@@ -322,12 +321,10 @@ class PascalGenerator implements IGenerator2  {
 	//TODO push ecx removido
 	def computeTerm(program e, block b, term t) '''
 		«e.computeFactor(b, t.factors.get(0))»
-		; computeTerm1
 		«IF t.operators != null»
 			«var int index = 1»
 			«FOR operator : t.operators»
 				«e.computeFactor(b, t.factors.get(index++))»
-				; computeTerm2
 				«IF operator.toLowerCase.equals("and")»
 					«IF reg2 != null && reg3 != null»
 						and «reg2», «reg3» ; Logical And
@@ -351,7 +348,6 @@ class PascalGenerator implements IGenerator2  {
 	//TODO push ecx removido
 	def computeSimpleExpression(program e, block b, simple_expression exp) '''
 		«e.computeTerm(b, exp.terms.get(0) as term)»
-		; computeSimpleExpression
 		«IF exp.prefixOperator != null»
 			«IF exp.prefixOperator.equals("-")»
 				neg aex
@@ -389,7 +385,6 @@ class PascalGenerator implements IGenerator2  {
 	//TODO push ecx removido
 	def computeExpression(program e, block b, expression exp) '''
 		«e.computeSimpleExpression(b, exp.expressions.get(0))»
-		; computeExpression
 		«IF exp.operators != null»
 			«var int index = 1»
 			«FOR operator : exp.operators»
