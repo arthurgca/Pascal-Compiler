@@ -241,9 +241,9 @@ class PascalGenerator implements IGenerator2  {
 			«procedure.name»:
 				«e.compileSequence(procedure.declaration.block, procedure.declaration.block.statement.sequence)»
 				«IF procedure instanceof Function»
-				st eax, «procedure.extendedName»
+				«««st eax, «procedure.extendedName»
 				«ENDIF»
-				ret ;return
+				ret ; return
 				
 		«ENDIF»
 	'''
@@ -446,11 +446,9 @@ class PascalGenerator implements IGenerator2  {
 					; If statement
 					«var ifStmt = s.structured.conditional.ifStmt»
 					«e.computeExpression(b, ifStmt.expression)»
-					and eax, 1 ; Setting zero flag
 					«var int label = conditionalLabelCount++»
 					if_body«label»:
 						«e.compileStatement(b, ifStmt.ifStatement)»
-						br conditional_out«label»
 					else_body«label»:
 						«IF ifStmt.elseStatement != null»
 							«e.compileStatement(b, ifStmt.elseStatement)»
