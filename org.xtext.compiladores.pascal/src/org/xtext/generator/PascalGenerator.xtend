@@ -95,6 +95,23 @@ class PascalGenerator implements IGenerator2  {
 	def getProcedures(program e, block b) {
 		return getProcedures(e).get(b);	
 	}
+	
+	def createStringTable(program e) {
+		for (s : e.eAllContents.toIterable.filter(factor)) {
+			if (s.string != null) {
+				if (!stringTable.containsKey(s.string)) {
+					stringTable.put(s.string, "__STRING_" + stringTable.size());
+				}
+			}
+		}
+		for (const : e.eAllContents.toIterable.filter(constant)) {
+			if (const.string != null) {
+				if (!stringTable.containsKey(const.string)) {
+					stringTable.put(const.string, "__STRING_" + stringTable.size());
+				}
+			}
+		}
+	}
 
 	def getValue(Variable v) {
 		if (v.value instanceof String) {
@@ -143,13 +160,21 @@ class PascalGenerator implements IGenerator2  {
 	}
 	
 	def compile(program e) '''
-		; Programa «e.heading.name»		
-		
+		; Programa «e.heading.name»
+		; Data
+		«e.createStringTable»
+		«e.compileStrings»
 		; Codigo
 		«e.compileAllProcedures(e.block)»
 		; Main:
 		«e.compileSequence(e.block, e.block.statement.sequence)» 
 		ret	; Fim do programa	
+	'''
+	
+	def compileStrings(program e) '''
+		«FOR s : stringTable.keySet» 
+			«e.compileString(s, stringTable.get(s))»
+		«ENDFOR»
 	'''
 	def CharSequence compileAllProcedures(program e, block b) '''
 		«e.compileProcedures(b, e.getProcedures(b))»
@@ -176,7 +201,7 @@ class PascalGenerator implements IGenerator2  {
 		
 	def compileString(program e, String name, String value) '''
 		«value» db '«name.replaceAll("'", "")»', 0
-		«value»_SIZE equ $-«value»
+		«value»_SIZE equ $-«name»
 	'''
 	
 	def compileVariable(program e, block b, Variable v) '''
